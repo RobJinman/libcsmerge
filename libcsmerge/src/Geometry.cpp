@@ -108,7 +108,7 @@ cgal_wrap::BezierCurve cubicBezierFromXMonoSection(const cgal_wrap::BezierXMonot
     if (t0 == 0.0 && t1 == 1.0) {
         return supportCurve;
     }
-/*
+
     // If the curve is a line segment, there's no need to use De Casteljau's
     if (supportCurve.number_of_control_points() == 2) {
         cgal_wrap::BezierRatPoint A = supportCurve.control_point(0);
@@ -131,7 +131,7 @@ cgal_wrap::BezierCurve cubicBezierFromXMonoSection(const cgal_wrap::BezierXMonot
 
         return cgal_wrap::BezierCurve(pts.begin(), pts.end());
     }
-*/
+
     std::list<cgal_wrap::BezierRatPoint> ctrlPoints;
 
     for (int i = 0; i < supportCurve.number_of_control_points(); ++i) {
@@ -224,6 +224,9 @@ PolyList toPolyList(const PathList& paths) {
                 points.push_back(cgal_wrap::BezierRatPoint(bezier.B()));
                 points.push_back(cgal_wrap::BezierRatPoint(bezier.C()));
                 points.push_back(cgal_wrap::BezierRatPoint(bezier.D()));
+            }
+            else {
+                throw GeometryException("Curve type is not recognised");
             }
 
             bool bClosesCurve = false;
@@ -498,10 +501,15 @@ void Path::append(const Curve& curve) {
 
     if (m_curves.size() > 0) {
         if (curve.initialPoint() != m_curves.back()->finalPoint()) {
-//            throw NoncontiguousCurvesException(m_curves.back()->finalPoint(), curve.initialPoint());
+//            try {
+                throw NoncontiguousCurvesException(m_curves.back()->finalPoint(), curve.initialPoint());
+//            }
+//            catch (CsMergeException& ex) {
+//                std::cout << "Error appending to path: " << ex.what() << "; Continuing ...\n"; // TODO
+//            }
         }
 
-//        cpy->setInitialPoint(m_curves.back()->finalPoint());
+        cpy->setInitialPoint(m_curves.back()->finalPoint());
     }
 
     m_curves.push_back(std::unique_ptr<Curve>(cpy));
@@ -557,7 +565,38 @@ Path::const_iterator Path::end() const {
 
 Path::~Path() {}
 
+
+// Namespace containing temporary solution due to bug in CGAL4.7. Bezier
+// polygons are approximated by regular polygons.
+#ifdef APPROX_BEZIERS
+namespace approx {
+
+
+namespace cgal_wrap {
+
+
+typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
+typedef Kernel::Point_2                                   Point_2;
+typedef CGAL::Polygon_2<Kernel>                           Polygon_2;
+
+
+}
+
+
 PathList Path::computeUnion(const PathList& paths1, const PathList& paths2) {
+    // TODO
+}
+
+
+}
+#endif
+
+
+PathList Path::computeUnion(const PathList& paths1, const PathList& paths2) {
+#ifdef APPROX_BEZIERS
+    return approx::computeUnion(paths1, paths2);
+#endif
+
     PolyList polyList1 = toPolyList(paths1);
     PolyList polyList2 = toPolyList(paths2);
 

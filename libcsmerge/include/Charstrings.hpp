@@ -35,6 +35,10 @@ struct CsToken {
 typedef std::vector<CsToken> Charstring;
 
 
+std::ostream& operator<<(std::ostream& out, const CsToken& tok);
+std::ostream& operator<<(std::ostream& out, const Charstring& cs);
+
+
 class ParseError : public CsMergeException {
     public:
         ParseError()

@@ -49,6 +49,32 @@ bool CsToken::operator!=(const CsToken& rhs) const {
     return !(*this == rhs);
 }
 
+std::ostream& operator<<(std::ostream& out, const CsToken& tok) {
+    if (tok.type == PS_OPERATOR) {
+        out << tok.str;
+    }
+    else {
+        out << tok.num;
+    }
+
+    return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const Charstring& cs) {
+    out << "Charstring [";
+
+    for (int i = 0; i < cs.size(); ++i) {
+        out << cs[i];
+        if (i + 1 < cs.size()) {
+            out << ", ";
+        }
+    }
+
+    out << "]\n";
+
+    return out;
+}
+
 
 UnrecognisedToken::UnrecognisedToken(const CsToken& token)
     : ParseError("Unrecognised token"), m_token(token) {}

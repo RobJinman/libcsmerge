@@ -28,6 +28,9 @@ const csmerge::Charstring CHARSTRINGS[] = {
     csmerge::Charstring({
         195, "hmoveto", 65, "hlineto", 412, 659, "rlineto", -66, "hlineto", -555, -369, "rmoveto", -14, 28, 42, -8, 34, "hhcurveto", 107, 47, 52, 59, 51, -30, 34, -51, 9, "hvcurveto", 2, "vlineto", 42, 15, 27, 31, 44, "vvcurveto", 59, -48, 40, -73, -44, -39, -12, -15, -32, "vhcurveto", 19, -48, "rlineto", 12, 26, 27, 9, 34, "hhcurveto", 35, 30, -15, -37, -19, -10, -22, -27, -12, "hvcurveto", -6, -14, -20, -4, -27, "hhcurveto", -35, -51, 40, "hlineto", 33, 15, -2, -6, 16, "hvcurveto", 28, -9, 13, -20, -23, "vvcurveto", -46, -39, -17, -52, -27, -30, 6, 13, -28, "vhcurveto", 417, -252, "rmoveto", 185, -88, 62, 88, 53, 50, -53, 250, -55, "hlineto", -192, -259, "rlineto", 69, 9, "rmoveto", 119, 161, "rlineto", -3, -49, 0, -37, -33, "vvcurveto", -42, "vlineto", "endchar"
     }), // threequarters
+    csmerge::Charstring({
+86, "hmoveto", 155, "hlineto", 238, 114, 144, 189, 188, -113, 138, -236, "hvcurveto", -158, "hlineto", 74, -597, "rmoveto", 535, 78, "vlineto", 191, 86, -110, -151, -148, -70, -126, -205, "hvcurveto", 11, 634, "rmoveto", 69, "hlineto", 99, 147, "rlineto", -63, "hlineto", -69, -100, -70, 100, "rlineto", -64, "hlineto", "endchar"
+    }) // Dcaron
 };
 
 

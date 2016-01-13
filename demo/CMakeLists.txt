@@ -5,7 +5,8 @@ include(${CGAL_USE_FILE})
 
 find_package(Qt5 COMPONENTS Widgets Script)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -g -DDEBUG")
+set(CMAKE_CXX_FLAGS "-std=c++11 -g")
+set(CGAL_DONT_OVERRIDE_CMAKE_FLAGS, TRUE)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libcsmerge/include)
