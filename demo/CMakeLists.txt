@@ -6,6 +6,11 @@ include(${CGAL_USE_FILE})
 find_package(Qt5 COMPONENTS Widgets Script)
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -g")
+
+if(DEFINED APPROX_BEZIERS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPPROX_BEZIERS")
+endif()
+
 set(CGAL_DONT_OVERRIDE_CMAKE_FLAGS, TRUE)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)

@@ -8,7 +8,13 @@ set(Python_ADDITIONAL_VERSIONS 3.4)
 find_package(PythonLibs 3.4 REQUIRED)
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -g")
+
+if(DEFINED APPROX_BEZIERS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPPROX_BEZIERS")
+endif()
+
 set(CGAL_DONT_OVERRIDE_CMAKE_FLAGS, TRUE)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libcsmerge/include)
 include_directories(${Boost_INCLUDE_DIR})
 include_directories(${PYTHON_INCLUDE_DIR})
@@ -18,4 +24,4 @@ file(GLOB_RECURSE SRCS *.cpp)
 add_library(pycsmerge SHARED ${SRCS})
 set_target_properties(pycsmerge PROPERTIES PREFIX "_")
 target_link_libraries(pycsmerge ${CMAKE_BINARY_DIR}/libcsmerge/libcsmerge.a)
-target_link_libraries(pycsmerge gmp ${Boost_LIBRARIES} ${PYTHON_LIBRARY} ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES})
+target_link_libraries(pycsmerge mpfr gmp ${Boost_LIBRARIES} ${PYTHON_LIBRARY} ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES})

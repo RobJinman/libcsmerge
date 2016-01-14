@@ -62,7 +62,7 @@ TEST_F(GeometryTest, pathsToPoly) {
     PathList paths1;
     paths1.push_back(path);
 
-    PolyList polyList = toPolyList(paths1);
+    cgal_wrap::PolyList polyList = toPolyList(paths1);
     ASSERT_EQ(1, polyList.size());
 
     const cgal_wrap::BezierPolygonWithHoles& poly = polyList[0];
@@ -111,7 +111,7 @@ TEST_F(GeometryTest, pathsToPolyAndBack) {
     PathList paths1;
     paths1.push_back(path);
 
-    PolyList polyList = toPolyList(paths1);
+    cgal_wrap::PolyList polyList = toPolyList(paths1);
     ASSERT_EQ(1, polyList.size());
 
     PathList paths2 = toPathList(polyList);
@@ -132,7 +132,7 @@ TEST_F(GeometryTest, pathsToPolyWithBezier) {
     PathList paths1;
     paths1.push_back(path);
 
-    PolyList polyList = toPolyList(paths1);
+    cgal_wrap::PolyList polyList = toPolyList(paths1);
     ASSERT_EQ(1, polyList.size());
 
     const cgal_wrap::BezierPolygonWithHoles& poly = polyList[0];
@@ -338,7 +338,7 @@ TEST_F(GeometryTest, pathsToPolyAndBackWithBezier) {
     PathList paths1;
     paths1.push_back(path);
 
-    PolyList polyList = toPolyList(paths1);
+    cgal_wrap::PolyList polyList = toPolyList(paths1);
     ASSERT_EQ(1, polyList.size());
 
     PathList paths2 = toPathList(polyList);
@@ -369,7 +369,7 @@ TEST_F(GeometryTest, pathsToPolyAndBackWithHole) {
     paths1.push_back(path1);
     paths1.push_back(path2);
 
-    PolyList polyList = toPolyList(paths1);
+    cgal_wrap::PolyList polyList = toPolyList(paths1);
     ASSERT_EQ(1, polyList.size());
 
     PathList paths2 = toPathList(polyList);
@@ -414,7 +414,7 @@ TEST_F(GeometryTest, aGlyphToPoly) {
     paths.push_back(path1);
     paths.push_back(path2);
 
-    PolyList polyList = toPolyList(paths);
+    cgal_wrap::PolyList polyList = toPolyList(paths);
     ASSERT_EQ(1, polyList.size());
 
     for (const cgal_wrap::BezierPolygonWithHoles& poly : polyList) {
@@ -460,7 +460,7 @@ TEST_F(GeometryTest, bGlyphToPoly) {
     paths.push_back(path1);
     paths.push_back(path2);
 
-    PolyList polyList = toPolyList(paths);
+    cgal_wrap::PolyList polyList = toPolyList(paths);
     ASSERT_EQ(1, polyList.size());
 
     for (const cgal_wrap::BezierPolygonWithHoles& poly : polyList) {
@@ -504,7 +504,7 @@ TEST_F(GeometryTest, simplePathsUnion) {
     PathList paths2;
     paths2.push_back(path2);
 
-    PathList paths3 = Path::computeUnion(paths1, paths2);
+    PathList paths3 = computeUnion(paths1, paths2);
 
     ASSERT_EQ(1, paths3.size());
     ASSERT_EQ(8, paths3[0].size());
@@ -552,7 +552,7 @@ TEST_F(GeometryTest, pathsWithHolesUnion) {
     paths2.push_back(path3);
     paths2.push_back(path4);
 
-    PathList paths3 = Path::computeUnion(paths1, paths2);
+    PathList paths3 = computeUnion(paths1, paths2);
 
     ASSERT_EQ(2, paths3.size());
     ASSERT_EQ(8, paths3[0].size());
@@ -605,7 +605,7 @@ TEST_F(GeometryTest, bezierPathsWithHolesUnion) {
     paths2.push_back(path3);
     paths2.push_back(path4);
 
-    PathList paths3 = Path::computeUnion(paths1, paths2);
+    PathList paths3 = computeUnion(paths1, paths2);
 
     ASSERT_EQ(2, paths3.size());
     ASSERT_EQ(8, paths3[0].size());

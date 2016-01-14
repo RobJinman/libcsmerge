@@ -891,7 +891,7 @@ Charstring generateCharstring(const PathList& paths) {
 Charstring mergeCharstrings(const Charstring& cs1, const Charstring& cs2) {
     PathList paths1 = parseCharstring(cs1);
     PathList paths2 = parseCharstring(cs2);
-    PathList paths3 = Path::computeUnion(paths1, paths2);
+    PathList paths3 = computeUnion(paths1, paths2);
 
     return generateCharstring(paths3);
 }

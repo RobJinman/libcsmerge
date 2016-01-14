@@ -28,6 +28,12 @@ static void printCharstring(const Charstring& cs) {
     std::cout << "]\n";
 }
 
+static void printPathList(const PathList& pathList) {
+    for (const Path& path : pathList) {
+        std::cout << path;
+    }
+}
+
 static void printPolyWithHoles(const cgal_wrap::BezierPolygonWithHoles poly) {
     const cgal_wrap::BezierPolygon& outer = poly.outer_boundary();
 
@@ -48,20 +54,20 @@ static void printPolyWithHoles(const cgal_wrap::BezierPolygonWithHoles poly) {
     }
 }
 
-static void printPolyList(const PolyList& polyList) {
+static void printPolyList(const cgal_wrap::PolyList& polyList) {
     for (const cgal_wrap::BezierPolygonWithHoles& poly : polyList) {
         printPolyWithHoles(poly);
     }
 }
 
 static void printPolySet(const cgal_wrap::BezierPolygonSet& polySet) {
-    PolyList polyList;
+    cgal_wrap::PolyList polyList;
     polySet.polygons_with_holes(std::back_inserter(polyList));
 
     printPolyList(polyList);
 }
 
-static cgal_wrap::BezierPolygonSet toPolySet(const PolyList& polyList) {
+static cgal_wrap::BezierPolygonSet toPolySet(const cgal_wrap::PolyList& polyList) {
     cgal_wrap::BezierPolygonSet set;
 
     for (const cgal_wrap::BezierPolygonWithHoles& poly : polyList) {
@@ -88,37 +94,24 @@ Demo::Demo() {
     setCentralWidget(m_view);
 
     try {
-        for (int j = 0; j < 5; ++j) {
-            Charstring glyph2({
-                472, 368, "rmoveto", -133, 225, 258, 66, -589, -66, 257, -225, -133, -66, 133, -302, 74, 302, 133, "hlineto", "endchar"
-            });
+        Charstring glyph({
+            166, 243, "rmoveto", 117, 101, 64, 145, 26, 27, -1, -2, 15, "vhcurveto", -25, "vlineto", -216, -122, -64, -76, -63, -53, 41, 86, "vhcurveto", -77, -3, "rmoveto", -107, 71, -56, 62, -6, "vhcurveto", -2, "vlineto", -44, -14, -51, -7, -48, -24, "rrcurveto", -40, -20, -35, -34, -54, "vvcurveto", -108, 116, -45, 157, "vhcurveto", 189, 110, 72, 124, "hvcurveto", 60, -23, 70, 102, "vvcurveto", 291, "vlineto", 4, -30, -53, 4, -49, "hhcurveto", -199, -133, -87, -163, "hvcurveto", 189, -411, "rmoveto", -106, -91, 21, 69, 72, 100, 6, 99, 30, "hvcurveto", 81, 24, 83, 37, 36, 92, "rrcurveto", 2, "hlineto", -4, -103, 22, -37, -76, "vvcurveto", -89, -85, -46, -137, "vhcurveto", "endchar"
+        });
+/*
+        PathList paths = parseCharstring(glyph);
+        PathList linear = approx::toLinearPaths(paths);
 
-            Charstring watermark2({
-                0, -237, "rmoveto", 28.3625, 0, "rlineto", 274.1375, 425.96466584292557, "rlineto", 274.13750000000005, -425.96466584292557, "rlineto", 28.362499999999955, 0, "rlineto", -288.31875, 448.0, "rlineto", 288.31875, 448.0, "rlineto", -28.362499999999955, 0, "rlineto", -274.13750000000005, -425.96466584292557, "rlineto", -274.1375, 425.96466584292557, "rlineto", -28.3625, 0, "rlineto", 288.31875, -448.0, "rlineto", -288.31875, -448.0, "rlineto", 0, 237, "rmoveto"
-            });
+        printPathList(linear);
 
-            PolyList polyList1 = toPolyList(parseCharstring(glyph2));
-            PolyList polyList2 = toPolyList(parseCharstring(watermark2));
+        approx::cgal_approx::PolyList polyList1 = approx::toPolyList(linear);
+*/
 
-            auto set1 = toPolySet(polyList1);
-            auto set2 = toPolySet(polyList2);
+        Charstring watermark({
+            0, -237, "rmoveto", 56.725, 0, "rlineto", 263.775, 404.50541269094174, "rlineto", 263.775, -404.50541269094174, "rlineto", 56.72500000000002, 0, "rlineto", -292.1375, 448.0, "rlineto", 292.1375, 448.0, "rlineto", -56.72500000000002, 0, "rlineto", -263.775, -404.50541269094174, "rlineto", -263.775, 404.50541269094174, "rlineto", -56.725, 0, "rlineto", 292.1375, -448.0, "rlineto", -292.1375, -448.0, "rlineto"
+        });
 
-            printPolySet(set1);
-            printPolySet(set2);
-
-            std::cout << "Starting union\n";
-
-            for (int i = 0; i < 3; ++i) {
-                cgal_wrap::BezierPolygonSet set3;
-
-                set3.join(set1);
-                set3.join(set2);
-
-                if (i == 0) {
-                    printPolySet(set3);
-                }
-            }
-        }
+        Charstring merged = mergeCharstrings(glyph, watermark);
+        drawPaths(parseCharstring(merged));
     }
     catch (CsMergeException& ex) {
         std::cerr << ex.what() << "\n";

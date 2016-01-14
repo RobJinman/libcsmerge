@@ -2,7 +2,7 @@
 #include <sstream>
 #include <CGAL/assertions_behaviour.h>
 #include "Geometry.hpp"
-#include "Types.hpp"
+#include "Util.hpp"
 
 
 namespace csmerge {
@@ -63,7 +63,15 @@ static Path toPath(const cgal_wrap::BezierPolygon& poly) {
             Point A = curve.control_point(0);
             Point B = curve.control_point(n - 1);
 
-            path.append(LineSegment(A, B));
+            try {
+                path.append(LineSegment(A, B));
+            }
+            catch (NoncontiguousCurvesException& ex) {
+                NON_FATAL("CGAL polygon boundary is noncontiguous");
+
+                Point end = path.finalPoint();
+                path.append(LineSegment(end, B));
+            }
         }
         else {
             assert(n == 4);
@@ -73,7 +81,15 @@ static Path toPath(const cgal_wrap::BezierPolygon& poly) {
             Point C = curve.control_point(2);
             Point D = curve.control_point(3);
 
-            path.append(CubicBezier(A, B, C, D));
+            try {
+                path.append(CubicBezier(A, B, C, D));
+            }
+            catch (NoncontiguousCurvesException& ex) {
+                NON_FATAL("CGAL polygon boundary is noncontiguous");
+
+                Point end = path.finalPoint();
+                path.append(CubicBezier(end, B, C, D));
+            }
         }
     }
 
@@ -156,7 +172,7 @@ cgal_wrap::BezierCurve cubicBezierFromXMonoSection(const cgal_wrap::BezierXMonot
     return cgal_wrap::BezierCurve(leftCtrlPoints.begin(), leftCtrlPoints.end());
 }
 
-PathList toPathList(const PolyList& polyList) {
+PathList toPathList(const cgal_wrap::PolyList& polyList) {
     PathList paths;
 
     for (auto i = polyList.begin(); i != polyList.end(); ++i) {
@@ -173,54 +189,55 @@ PathList toPathList(const PolyList& polyList) {
     return paths;
 }
 
-PolyList toPolyList(const PathList& paths) {
+cgal_wrap::PolyList toPolyList(const PathList& paths) {
     cgal_wrap::Traits traits;
     cgal_wrap::Traits::Make_x_monotone_2 fnMakeXMonotone = traits.make_x_monotone_2_object();
 
     cgal_wrap::RatKernel ratKernel;
     cgal_wrap::RatKernel::Equal_2 fnEqual = ratKernel.equal_2_object();
 
-    PolyList polyList; // The final polygons with holes
+    cgal_wrap::PolyList polyList; // The final polygons with holes
     cgal_wrap::BezierPolygon outerPoly;
     std::list<cgal_wrap::BezierPolygon> holes;
-    std::list<cgal_wrap::BezierXMonotoneCurve> monoCurves;
-    bool first = true;
-    cgal_wrap::BezierRatPoint firstPoint;
+
+    std::cout << "Processing paths...\n";
 
     // For each path in the list
     for (auto i = paths.begin(); i != paths.end(); ++i) {
+        std::cout << "Processing path...\n";
+
         const Path& path = *i;
 
-        cgal_wrap::BezierRatPoint prevEndPoint;
+        if (path.empty()) {
+            continue;
+        }
+
+        if (!path.isClosed()) {
+            throw GeometryException("Cannot make polygon from path; Path is not closed");
+        }
+
+        std::list<cgal_wrap::BezierXMonotoneCurve> monoCurves;
 
         // For each curve in the path
-        for (auto j = path.begin(); j != path.end(); ++j) {
-            const Curve& curve = **j;
+        for (int j = 0; j < path.size(); ++j) {
+            const Curve& curve = path[j];
 
             std::list<cgal_wrap::BezierRatPoint> points;
 
             if (curve.type() == LineSegment::type) {
                 const LineSegment& lseg = dynamic_cast<const LineSegment&>(curve);
 
-                cgal_wrap::BezierRatPoint A = lseg.A();
+                std::cout << lseg << "\n";
 
-                if (j != path.begin()) {
-                    assert(A == prevEndPoint);
-                }
-
-                points.push_back(cgal_wrap::BezierRatPoint(A));
+                points.push_back(cgal_wrap::BezierRatPoint(lseg.A()));
                 points.push_back(cgal_wrap::BezierRatPoint(lseg.B()));
             }
             else if (curve.type() == CubicBezier::type) {
                 const CubicBezier& bezier = dynamic_cast<const CubicBezier&>(curve);
 
-                cgal_wrap::BezierRatPoint A = bezier.A();
+                std::cout << bezier << "\n";
 
-                if (j != path.begin()) {
-                    assert(A == prevEndPoint);
-                }
-
-                points.push_back(cgal_wrap::BezierRatPoint(A));
+                points.push_back(cgal_wrap::BezierRatPoint(bezier.A()));
                 points.push_back(cgal_wrap::BezierRatPoint(bezier.B()));
                 points.push_back(cgal_wrap::BezierRatPoint(bezier.C()));
                 points.push_back(cgal_wrap::BezierRatPoint(bezier.D()));
@@ -229,26 +246,16 @@ PolyList toPolyList(const PathList& paths) {
                 throw GeometryException("Curve type is not recognised");
             }
 
-            bool bClosesCurve = false;
+            if (j + 1 == path.size()) {
+                cgal_wrap::BezierRatPoint start = path.initialPoint();
 
-            // If the last point of the current curve is approximately equal to the first
-            // point in the chain, we've completed a polygon. Set the last point to the
-            // first to ensure they match exactly.
-            if (!first && Point(points.back()) == Point(firstPoint)) {
                 points.pop_back();
-                points.push_back(firstPoint);
-
-                bClosesCurve = true;
+                points.push_back(start);
             }
-
-            // Keep track of what the last point from the previous curve was
-            prevEndPoint = points.back();
 
             cgal_wrap::BezierCurve cgalCurve(points.begin(), points.end());
             std::list<CGAL::Object> monoObjs;
             fnMakeXMonotone(cgalCurve, std::back_inserter(monoObjs));
-
-//            std::cout << "No. mono-curves: " << monoObjs.size() << "\n";
 
             // Append the x-monotone curves to the list
             cgal_wrap::BezierXMonotoneCurve monoCurve;
@@ -257,40 +264,34 @@ PolyList toPolyList(const PathList& paths) {
                     monoCurves.push_back(monoCurve);
                 }
             }
+        }
 
-            if (!first) {
-                // If this curve closes the current chain, thereby creating a new polygon
-                if (bClosesCurve) {
+        // Add the new polygon to the list
 
-                    // Add the new polygon to the list
+        cgal_wrap::BezierPolygon subPoly(monoCurves.begin(), monoCurves.end());
 
-                    cgal_wrap::BezierPolygon subPoly(monoCurves.begin(), monoCurves.end());
-
-                    if (subPoly.orientation() == CGAL::COUNTERCLOCKWISE) {
-                        if (!outerPoly.is_empty()) {
-                            polyList.push_back(cgal_wrap::BezierPolygonWithHoles(outerPoly, holes.begin(), holes.end()));
-                            holes.clear();
-                        }
-
-                        outerPoly = subPoly;
-                    }
-                    else {
-                        holes.push_back(subPoly);
-                    }
-
-                    monoCurves.clear();
-                    first = true;
-                }
+        if (subPoly.orientation() == CGAL::COUNTERCLOCKWISE) {
+            if (!outerPoly.is_empty()) {
+                polyList.push_back(cgal_wrap::BezierPolygonWithHoles(outerPoly, holes.begin(), holes.end()));
+                holes.clear();
             }
-            else {
-                // This is the first curve in the chain - store its source point
-                firstPoint = cgalCurve.control_point(0);
-                first = false;
+
+            outerPoly = subPoly;
+        }
+        else {
+            if (outerPoly.is_empty()) {
+                std::cout << "Isolated hole\n"; // TODO
+                continue;
+//                throw GeometryException("Error making polygon; Wrong winding");
             }
+
+            holes.push_back(subPoly);
         }
     }
 
-    polyList.push_back(cgal_wrap::BezierPolygonWithHoles(outerPoly, holes.begin(), holes.end()));
+    if (!outerPoly.is_empty()) {
+        polyList.push_back(cgal_wrap::BezierPolygonWithHoles(outerPoly, holes.begin(), holes.end()));
+    }
 
     return polyList;
 }
@@ -501,12 +502,7 @@ void Path::append(const Curve& curve) {
 
     if (m_curves.size() > 0) {
         if (curve.initialPoint() != m_curves.back()->finalPoint()) {
-//            try {
-                throw NoncontiguousCurvesException(m_curves.back()->finalPoint(), curve.initialPoint());
-//            }
-//            catch (CsMergeException& ex) {
-//                std::cout << "Error appending to path: " << ex.what() << "; Continuing ...\n"; // TODO
-//            }
+            throw NoncontiguousCurvesException(m_curves.back()->finalPoint(), curve.initialPoint());
         }
 
         cpy->setInitialPoint(m_curves.back()->finalPoint());
@@ -521,6 +517,10 @@ bool Path::empty() const {
 
 size_t Path::size() const {
     return m_curves.size();
+}
+
+bool Path::isClosed() const {
+    return finalPoint() == initialPoint();
 }
 
 const Curve& Path::operator[](int idx) const {
@@ -566,25 +566,189 @@ Path::const_iterator Path::end() const {
 Path::~Path() {}
 
 
+std::ostream& operator<<(std::ostream& out, const Path& path) {
+    for (auto i = path.begin(); i != path.end(); ++i) {
+        const std::unique_ptr<Curve>& pCurve = *i;
+        out << *pCurve << std::endl;
+    }
+
+    return out;
+}
+
+
 // Namespace containing temporary solution due to bug in CGAL4.7. Bezier
 // polygons are approximated by regular polygons.
 #ifdef APPROX_BEZIERS
 namespace approx {
 
 
-namespace cgal_wrap {
+static cgal_approx::Polygon toPolygon(const Path& path) {
+    if (!path.isClosed()) {
+        throw GeometryException("Error making polygon; Path is not closed");
+    }
 
+    cgal_approx::Polygon poly;
 
-typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
-typedef Kernel::Point_2                                   Point_2;
-typedef CGAL::Polygon_2<Kernel>                           Polygon_2;
+    for (auto i = path.begin(); i != path.end(); ++i) {
+        const Curve& curve = **i;
 
+        assert(curve.type() == LineSegment::type);
+        const LineSegment& lseg = dynamic_cast<const LineSegment&>(curve);
 
+        poly.push_back(cgal_approx::Point(lseg.B().x, lseg.B().y));
+    }
+
+    return poly;
 }
 
+static Path toLinearPath(const Path& path) {
+    Path newPath;
 
-PathList Path::computeUnion(const PathList& paths1, const PathList& paths2) {
-    // TODO
+    for (auto i = path.begin(); i != path.end(); ++i) {
+        const std::unique_ptr<Curve>& pCurve = *i;
+        const Curve& curve = *pCurve;
+
+        if (curve.type() == CubicBezier::type) {
+            const CubicBezier& bezier = dynamic_cast<const CubicBezier&>(curve);
+
+            std::list<cgal_wrap::BezierRatPoint> points;
+            points.push_back(cgal_wrap::BezierRatPoint(bezier.A()));
+            points.push_back(cgal_wrap::BezierRatPoint(bezier.B()));
+            points.push_back(cgal_wrap::BezierRatPoint(bezier.C()));
+            points.push_back(cgal_wrap::BezierRatPoint(bezier.D()));
+
+            cgal_wrap::BezierCurve cgalBezier(points.begin(), points.end());
+
+            int n = 10;
+            double dt = 1.0 / static_cast<double>(n);
+            cgal_wrap::Rational t = 0.0;
+
+            Point A = cgalBezier(t);
+            for (int i = 1; i <= n; ++i) {
+                t = static_cast<double>(i) * dt;
+
+                Point B = cgalBezier(t);
+
+                LineSegment lseg(A, B);
+                newPath.append(lseg);
+
+                A = B;
+            }
+        }
+        else if (curve.type() == LineSegment::type) {
+            newPath.append(curve);
+        }
+    }
+
+    return newPath;
+}
+
+static Path toPath(const cgal_approx::Polygon& poly) {
+    Path path;
+
+    auto i = poly.vertices_begin();
+    Point A(CGAL::to_double(i->x()), CGAL::to_double(i->y()));
+
+    for (; i != poly.vertices_end(); ++i) {
+        Point B(CGAL::to_double(i->x()), CGAL::to_double(i->y()));
+
+        path.append(LineSegment(A, B));
+
+        A = B;
+    }
+
+    path.close();
+
+    return path;
+}
+
+cgal_approx::PolyList toPolyList(const PathList& paths) {
+    cgal_approx::PolyList polyList;
+
+    cgal_approx::Polygon outerPoly;
+    std::list<cgal_approx::Polygon> holes;
+
+    for (const Path& path : paths) {
+        if (path.empty()) {
+            continue;
+        }
+
+        cgal_approx::Polygon subPoly = toPolygon(path);
+
+        if (subPoly.orientation() == CGAL::COUNTERCLOCKWISE) {
+            if (!outerPoly.is_empty()) {
+                polyList.push_back(cgal_approx::PolygonWithHoles(outerPoly, holes.begin(), holes.end()));
+                holes.clear();
+            }
+
+            outerPoly = subPoly;
+        }
+        else {
+            if (outerPoly.is_empty()) {
+                std::cout << "Isolated hole\n"; // TODO
+                continue;
+//                throw GeometryException("Error making polygon; Wrong winding");
+            }
+
+            holes.push_back(subPoly);
+        }
+    }
+
+    if (!outerPoly.is_empty()) {
+        polyList.push_back(cgal_approx::PolygonWithHoles(outerPoly, holes.begin(), holes.end()));
+    }
+
+    return polyList;
+}
+
+PathList toLinearPaths(const PathList& paths) {
+    PathList linear;
+
+    for (const Path& path : paths) {
+        linear.push_back(toLinearPath(path));
+    }
+
+    return linear;
+}
+
+PathList toPathList(const cgal_approx::PolyList& polyList) {
+    PathList paths;
+
+    for (auto i = polyList.begin(); i != polyList.end(); ++i) {
+        const cgal_approx::PolygonWithHoles& poly = *i;
+        const cgal_approx::Polygon& outer = poly.outer_boundary();
+
+        paths.push_back(toPath(outer));
+
+        for (auto j = poly.holes_begin(); j != poly.holes_end(); ++j) {
+            paths.push_back(toPath(*j));
+        }
+    }
+
+    return paths;
+}
+
+PathList computeUnion(const PathList& paths1, const PathList& paths2) {
+    PathList linear1 = toLinearPaths(paths1);
+    PathList linear2 = toLinearPaths(paths2);
+
+    cgal_approx::PolyList polyList1 = approx::toPolyList(linear1);
+    cgal_approx::PolyList polyList2 = approx::toPolyList(linear2);
+
+    cgal_approx::PolygonSet polySet;
+
+    for (auto i : polyList1) {
+        polySet.join(i);
+    }
+
+    for (auto i : polyList2) {
+        polySet.join(i);
+    }
+
+    cgal_approx::PolyList polyList;
+    polySet.polygons_with_holes(std::back_inserter(polyList));
+
+    return toPathList(polyList);
 }
 
 
@@ -592,13 +756,13 @@ PathList Path::computeUnion(const PathList& paths1, const PathList& paths2) {
 #endif
 
 
-PathList Path::computeUnion(const PathList& paths1, const PathList& paths2) {
+PathList computeUnion(const PathList& paths1, const PathList& paths2) {
 #ifdef APPROX_BEZIERS
     return approx::computeUnion(paths1, paths2);
 #endif
 
-    PolyList polyList1 = toPolyList(paths1);
-    PolyList polyList2 = toPolyList(paths2);
+    cgal_wrap::PolyList polyList1 = toPolyList(paths1);
+    cgal_wrap::PolyList polyList2 = toPolyList(paths2);
 
     cgal_wrap::BezierPolygonSet polySet;
 
@@ -610,7 +774,7 @@ PathList Path::computeUnion(const PathList& paths1, const PathList& paths2) {
         polySet.join(i);
     }
 
-    PolyList polyList;
+    cgal_wrap::PolyList polyList;
     polySet.polygons_with_holes(std::back_inserter(polyList));
 
     return toPathList(polyList);

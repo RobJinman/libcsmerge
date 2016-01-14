@@ -57,7 +57,7 @@ struct CsTokenFromPythonString {
 
 
 static py::list mergeCharstrings_helper(py::list& cs1Tokens, py::list& cs2Tokens) {
-    geometry::FLOAT_PRECISION = 20.0; // TODO
+//    geometry::FLOAT_PRECISION = 20.0;
 
     Charstring cs1;
     for (int i = 0; i < py::len(cs1Tokens); ++i) {

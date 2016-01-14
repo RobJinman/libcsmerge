@@ -4,15 +4,68 @@
 
 #include <memory>
 #include <vector>
+#include <CGAL/basic.h>
+#include <CGAL/Cartesian.h>
+#include <CGAL/CORE_algebraic_number_traits.h>
+#include <CGAL/Arr_Bezier_curve_traits_2.h>
+#include <CGAL/Gps_traits_2.h>
+#include <CGAL/General_polygon_set_2.h>
+#include <CGAL/Polygon_2.h>
+#ifdef APPROX_BEZIERS
+#    include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#    include <CGAL/Polygon_2.h>
+#    include <CGAL/Polygon_with_holes_2.h>
+#    include <CGAL/Polygon_set_2.h>
+#endif
 #include "Exception.hpp"
-#include "Types.hpp"
 
 
 namespace csmerge {
 namespace geometry {
 
 
-typedef std::vector<cgal_wrap::BezierPolygonWithHoles> PolyList;
+namespace cgal_wrap {
+
+
+// The arrangement traits for bezier curves uses rational numbers for control
+// points and algebraic numbers for roots.
+typedef CGAL::CORE_algebraic_number_traits NtTraits;
+typedef NtTraits::Rational Rational;
+typedef NtTraits::Algebraic Algebraic;
+
+// Instantiate traits templates that implement the geometry kernel concept,
+// whose subtypes are used by the various CGAL data structures and algorithms.
+typedef CGAL::Cartesian<Rational> RatKernel;
+typedef CGAL::Cartesian<Algebraic> AlgKernel;
+
+// Get the point type from the geometry kernel so we can define control points.
+typedef RatKernel::Point_2 BezierRatPoint;
+
+// Instantiate a traits class with the Arr_Bezier_curve_traits_2 template to
+// implement the ArrangementTraits_2 concept.
+//    - Arg3 should define nested types Integer, Rational, and Algebraic.
+//    - Args 1 & 2 are geometric kernals templated with Arg3::Rational and
+//      Arg3::Algebraic respectively.
+typedef CGAL::Arr_Bezier_curve_traits_2<RatKernel, AlgKernel, NtTraits> Traits;
+
+typedef Traits::Point_2 BezierPoint;
+typedef Traits::Curve_2 BezierCurve;
+
+// Models the GeneralPolygonSetTraits_2 concept. Inherits from its argument, Traits.
+typedef CGAL::Gps_traits_2<Traits> BezierTraits;
+
+// Get the x-monotone curve type from the arrangement traits type
+typedef BezierTraits::X_monotone_curve_2 BezierXMonotoneCurve;
+
+typedef BezierTraits::General_polygon_2 BezierPolygon;
+typedef BezierTraits::General_polygon_with_holes_2 BezierPolygonWithHoles;
+typedef CGAL::Gps_default_dcel<BezierTraits> BezierDcelTraits;
+typedef CGAL::General_polygon_set_2<BezierTraits, BezierDcelTraits> BezierPolygonSet;
+
+typedef std::vector<BezierPolygonWithHoles> PolyList;
+
+
+}
 
 
 struct Point {
@@ -130,6 +183,7 @@ class Path {
         void close();
         bool empty() const;
         size_t size() const;
+        bool isClosed() const;
 
         const Curve& operator[](int idx) const;
         Curve& operator[](int idx);
@@ -143,8 +197,6 @@ class Path {
         const_iterator begin() const;
         const_iterator end() const;
 
-        static PathList computeUnion(const PathList& paths1, const PathList& paths2);
-
         ~Path();
 
     private:
@@ -154,14 +206,13 @@ class Path {
 
 std::ostream& operator<<(std::ostream& out, const Curve& curve);
 std::ostream& operator<<(std::ostream& out, const Point& pt);
+std::ostream& operator<<(std::ostream& out, const Path& path);
 
 
 extern double FLOAT_PRECISION;
 
 void initialise();
-PathList toPathList(const PolyList& polyList);
-PolyList toPolyList(const PathList& paths);
-cgal_wrap::BezierCurve cubicBezierFromXMonoSection(const cgal_wrap::BezierXMonotoneCurve& mono);
+PathList computeUnion(const PathList& paths1, const PathList& paths2);
 
 
 class GeometryException : public CsMergeException {
@@ -179,6 +230,46 @@ class NoncontiguousCurvesException : public GeometryException {
     private:
         std::string constructMsg(const Point& pathEnd, const Point& curveStart) const;
 };
+
+
+// ----- Private functions, exposed here for testing only -----
+
+cgal_wrap::PolyList toPolyList(const PathList& paths);
+PathList toPathList(const cgal_wrap::PolyList& polyList);
+cgal_wrap::BezierCurve cubicBezierFromXMonoSection(const cgal_wrap::BezierXMonotoneCurve& mono);
+PathList computeUnion(const PathList& paths1, const PathList& paths2);
+
+
+// Namespace containing temporary solution due to bug in CGAL4.7. Bezier
+// polygons are approximated by regular polygons.
+#ifdef APPROX_BEZIERS
+namespace approx {
+
+
+namespace cgal_approx {
+
+
+typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
+typedef Kernel::Point_2 Point;
+typedef CGAL::Polygon_2<Kernel> Polygon;
+typedef CGAL::Polygon_with_holes_2<Kernel> PolygonWithHoles;
+typedef CGAL::Polygon_set_2<Kernel> PolygonSet;
+typedef std::vector<PolygonWithHoles> PolyList;
+
+
+}
+
+
+cgal_approx::PolyList toPolyList(const PathList& paths);
+PathList toPathList(const cgal_approx::PolyList& polyList);
+PathList toLinearPaths(const PathList& paths);
+PathList computeUnion(const PathList& paths1, const PathList& paths2);
+
+
+}
+#endif
+
+// ------------------------------------------------------------
 
 
 }
