@@ -8,11 +8,15 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../vendor/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libcsmerge/include)
 
 link_directories(${CMAKE_BINARY_DIR}/libcsmerge)
-link_directories(${CMAKE_CURRENT_SOURCE_DIR}/../vendor/lib)
+if(APPLE)
+  link_directories(${CMAKE_CURRENT_SOURCE_DIR}/../vendor/lib/osx)
+else()
+  link_directories(${CMAKE_CURRENT_SOURCE_DIR}/../vendor/lib)
+endif()
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -g")
 
-if(DEFINED APPROX_BEZIERS)
+if(APPROX_BEZIERS)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPPROX_BEZIERS")
 endif()
 

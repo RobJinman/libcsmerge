@@ -5,6 +5,11 @@
 #include "Util.hpp"
 
 
+#ifndef LSEGS_PER_BEZIER
+#    define LSEGS_PER_BEZIER 8
+#endif
+
+
 namespace csmerge {
 namespace geometry {
 
@@ -200,12 +205,8 @@ cgal_wrap::PolyList toPolyList(const PathList& paths) {
     cgal_wrap::BezierPolygon outerPoly;
     std::list<cgal_wrap::BezierPolygon> holes;
 
-    std::cout << "Processing paths...\n";
-
     // For each path in the list
     for (auto i = paths.begin(); i != paths.end(); ++i) {
-        std::cout << "Processing path...\n";
-
         const Path& path = *i;
 
         if (path.empty()) {
@@ -227,15 +228,11 @@ cgal_wrap::PolyList toPolyList(const PathList& paths) {
             if (curve.type() == LineSegment::type) {
                 const LineSegment& lseg = dynamic_cast<const LineSegment&>(curve);
 
-                std::cout << lseg << "\n";
-
                 points.push_back(cgal_wrap::BezierRatPoint(lseg.A()));
                 points.push_back(cgal_wrap::BezierRatPoint(lseg.B()));
             }
             else if (curve.type() == CubicBezier::type) {
                 const CubicBezier& bezier = dynamic_cast<const CubicBezier&>(curve);
-
-                std::cout << bezier << "\n";
 
                 points.push_back(cgal_wrap::BezierRatPoint(bezier.A()));
                 points.push_back(cgal_wrap::BezierRatPoint(bezier.B()));
@@ -280,9 +277,7 @@ cgal_wrap::PolyList toPolyList(const PathList& paths) {
         }
         else {
             if (outerPoly.is_empty()) {
-                std::cout << "Isolated hole\n"; // TODO
-                continue;
-//                throw GeometryException("Error making polygon; Wrong winding");
+                throw GeometryException("Error making polygon; Wrong winding");
             }
 
             holes.push_back(subPoly);
@@ -619,7 +614,7 @@ static Path toLinearPath(const Path& path) {
 
             cgal_wrap::BezierCurve cgalBezier(points.begin(), points.end());
 
-            int n = 10;
+            int n = LSEGS_PER_BEZIER;
             double dt = 1.0 / static_cast<double>(n);
             cgal_wrap::Rational t = 0.0;
 
@@ -665,7 +660,12 @@ static Path toPath(const cgal_approx::Polygon& poly) {
 cgal_approx::PolyList toPolyList(const PathList& paths) {
     cgal_approx::PolyList polyList;
 
-    cgal_approx::Polygon outerPoly;
+    typedef std::pair<
+        cgal_approx::Polygon,             // Outer
+        std::list<cgal_approx::Polygon>   // Holes
+    > PolygonParts;
+
+    std::list<PolygonParts> polygonParts;
     std::list<cgal_approx::Polygon> holes;
 
     for (const Path& path : paths) {
@@ -676,26 +676,30 @@ cgal_approx::PolyList toPolyList(const PathList& paths) {
         cgal_approx::Polygon subPoly = toPolygon(path);
 
         if (subPoly.orientation() == CGAL::COUNTERCLOCKWISE) {
-            if (!outerPoly.is_empty()) {
-                polyList.push_back(cgal_approx::PolygonWithHoles(outerPoly, holes.begin(), holes.end()));
-                holes.clear();
-            }
-
-            outerPoly = subPoly;
+            polygonParts.push_back(PolygonParts(subPoly, std::list<cgal_approx::Polygon>()));
         }
         else {
-            if (outerPoly.is_empty()) {
-                std::cout << "Isolated hole\n"; // TODO
-                continue;
-//                throw GeometryException("Error making polygon; Wrong winding");
-            }
-
             holes.push_back(subPoly);
         }
     }
 
-    if (!outerPoly.is_empty()) {
-        polyList.push_back(cgal_approx::PolygonWithHoles(outerPoly, holes.begin(), holes.end()));
+    for (const cgal_approx::Polygon& hole : holes) {
+        for (PolygonParts& parts : polygonParts) {
+            const cgal_approx::Polygon& outer = parts.first;
+            std::list<cgal_approx::Polygon>& polyHoles = parts.second;
+
+            if (outer.has_on_positive_side(hole[0])) {
+                polyHoles.push_back(hole);
+                break;
+            }
+        }
+    }
+
+    for (const PolygonParts& parts : polygonParts) {
+        const cgal_approx::Polygon& outer = parts.first;
+        const std::list<cgal_approx::Polygon>& holes = parts.second;
+
+        polyList.push_back(cgal_approx::PolygonWithHoles(outer, holes.begin(), holes.end()));
     }
 
     return polyList;

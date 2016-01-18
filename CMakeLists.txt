@@ -3,5 +3,7 @@ project(libcsmerge)
 
 add_subdirectory(libcsmerge)
 add_subdirectory(pycsmerge)
-add_subdirectory(test)
+if(NOT APPLE)
+  add_subdirectory(test)
+endif()
 add_subdirectory(demo)
