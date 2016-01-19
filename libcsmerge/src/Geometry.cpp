@@ -155,7 +155,7 @@ cgal_wrap::BezierCurve cubicBezierFromXMonoSection(const cgal_wrap::BezierXMonot
 
     std::list<cgal_wrap::BezierRatPoint> ctrlPoints;
 
-    for (int i = 0; i < supportCurve.number_of_control_points(); ++i) {
+    for (size_t i = 0; i < supportCurve.number_of_control_points(); ++i) {
         ctrlPoints.push_back(supportCurve.control_point(i));
     }
 
@@ -198,9 +198,6 @@ cgal_wrap::PolyList toPolyList(const PathList& paths) {
     cgal_wrap::Traits traits;
     cgal_wrap::Traits::Make_x_monotone_2 fnMakeXMonotone = traits.make_x_monotone_2_object();
 
-    cgal_wrap::RatKernel ratKernel;
-    cgal_wrap::RatKernel::Equal_2 fnEqual = ratKernel.equal_2_object();
-
     cgal_wrap::PolyList polyList; // The final polygons with holes
     cgal_wrap::BezierPolygon outerPoly;
     std::list<cgal_wrap::BezierPolygon> holes;
@@ -220,7 +217,7 @@ cgal_wrap::PolyList toPolyList(const PathList& paths) {
         std::list<cgal_wrap::BezierXMonotoneCurve> monoCurves;
 
         // For each curve in the path
-        for (int j = 0; j < path.size(); ++j) {
+        for (size_t j = 0; j < path.size(); ++j) {
             const Curve& curve = path[j];
 
             std::list<cgal_wrap::BezierRatPoint> points;
@@ -658,14 +655,143 @@ static Path toPath(const cgal_approx::Polygon& poly) {
 }
 
 cgal_approx::PolyList toPolyList(const PathList& paths) {
+    class Tree;
+    typedef std::unique_ptr<Tree> pTree_t;
+
+    class Tree {
+        public:
+            Tree() {}
+
+            explicit Tree(const cgal_approx::Polygon& outer_)
+                : outer(outer_) {}
+
+            cgal_approx::Polygon outer;
+            std::list<cgal_approx::Polygon> holes;
+
+            std::list<pTree_t> children;
+
+            bool contains(const cgal_approx::Polygon& poly) const {
+                return outer.is_empty() || outer.has_on_positive_side(poly.vertex(0));
+            }
+
+            bool contains(const Tree& tree) const {
+                return contains(tree.outer);
+            }
+
+            bool isInside(const Tree& tree) const {
+                return (!outer.is_empty()) || tree.outer.has_on_positive_side(outer.vertex(0));
+            }
+
+            void insert(pTree_t tree) {
+                assert(this->isInside(*tree) == false);
+                assert(this->contains(*tree));
+
+                for (pTree_t& child : children) {
+                    if (child->contains(*tree)) {
+                        child->insert(std::move(tree));
+                        return;
+                    }
+                }
+
+                // By this point we know that this node's polygon contains the tree's polygon
+                // but none of our childrens' polygons does. It should thus be added as a child
+                // to this tree, but we must work out which children it should inherit.
+
+                auto i = children.begin();
+                while (i != children.end()) {
+                    pTree_t& child = *i;
+
+                    if (tree->contains(*child)) {
+                        // Our new child tree should inherit this child
+
+                        pTree_t tmpChild = std::move(child);
+                        children.erase(i++);
+
+                        tree->insert(std::move(tmpChild));
+                    }
+                    else {
+                        ++i;
+                    }
+                }
+
+                children.push_back(std::move(tree));
+            }
+
+            // If the hole has been inserted somewhere, signal this
+            // to the calling function by returning true.
+            bool insertHole(const cgal_approx::Polygon& hole) {
+                if (contains(hole)) {
+                    for (pTree_t& child : children) {
+                        if (child->insertHole(hole)) {
+                            return true;
+                        }
+                    }
+
+                    // Only if the hole was NOT inserted into any of the children
+                    // do we insert the hole
+                    holes.push_back(hole);
+
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+
+            // Don't hang on to these raw pointers
+            std::list<const Tree*> toList() const {
+                std::list<const Tree*> list;
+                toList_r(list);
+
+                return list;
+            }
+
+#ifdef DEBUG
+            void dbg_print(std::ostream& out) const {
+                out << "Tree (children: " << children.size() << ")" << std::endl;
+                dbg_print_r(out, 0);
+            }
+#endif
+
+        private:
+#ifdef DEBUG
+            void dbg_print_r(std::ostream& out, int depth) const {
+                dbg_print_tabs(out, depth);
+                out << "Node (depth: " << depth << ", children: " << children.size()
+                    << ", holes: " << holes.size() << ")" << std::endl;
+
+                dbg_print_tabs(out, depth + 1);
+                out << "Outer poly: " << outer << std::endl;
+
+                for (const cgal_approx::Polygon& hole : holes) {
+                    dbg_print_tabs(out, depth + 2);
+                    out << "Hole: " << hole << std::endl;
+                }
+
+                for (const pTree_t& child : children) {
+                    child->dbg_print_r(out, depth + 1);
+                }
+            }
+
+            void dbg_print_tabs(std::ostream& out, int n) const {
+                for (int i = 0; i < n; ++i) {
+                    out << "\t";
+                }
+            }
+#endif
+
+            void toList_r(std::list<const Tree*>& list) const {
+                list.push_back(this);
+
+                for (const pTree_t& child : children) {
+                    child->toList_r(list);
+                }
+            }
+    };
+
+    Tree polyTree;
     cgal_approx::PolyList polyList;
 
-    typedef std::pair<
-        cgal_approx::Polygon,             // Outer
-        std::list<cgal_approx::Polygon>   // Holes
-    > PolygonParts;
-
-    std::list<PolygonParts> polygonParts;
     std::list<cgal_approx::Polygon> holes;
 
     for (const Path& path : paths) {
@@ -676,7 +802,7 @@ cgal_approx::PolyList toPolyList(const PathList& paths) {
         cgal_approx::Polygon subPoly = toPolygon(path);
 
         if (subPoly.orientation() == CGAL::COUNTERCLOCKWISE) {
-            polygonParts.push_back(PolygonParts(subPoly, std::list<cgal_approx::Polygon>()));
+            polyTree.insert(pTree_t(new Tree(subPoly)));
         }
         else {
             holes.push_back(subPoly);
@@ -684,22 +810,20 @@ cgal_approx::PolyList toPolyList(const PathList& paths) {
     }
 
     for (const cgal_approx::Polygon& hole : holes) {
-        for (PolygonParts& parts : polygonParts) {
-            const cgal_approx::Polygon& outer = parts.first;
-            std::list<cgal_approx::Polygon>& polyHoles = parts.second;
-
-            if (outer.has_on_positive_side(hole[0])) {
-                polyHoles.push_back(hole);
-                break;
-            }
-        }
+        polyTree.insertHole(hole);
     }
 
-    for (const PolygonParts& parts : polygonParts) {
-        const cgal_approx::Polygon& outer = parts.first;
-        const std::list<cgal_approx::Polygon>& holes = parts.second;
+#ifdef DEBUG
+//    polyTree.dbg_print(std::cout);
+#endif
 
-        polyList.push_back(cgal_approx::PolygonWithHoles(outer, holes.begin(), holes.end()));
+    holes.clear();
+
+    std::list<const Tree*> trees = polyTree.toList();
+    trees.pop_front(); // Skip the root, which is empty
+
+    for (const Tree* tree : trees) {
+        polyList.push_back(cgal_approx::PolygonWithHoles(tree->outer, tree->holes.begin(), tree->holes.end()));
     }
 
     return polyList;

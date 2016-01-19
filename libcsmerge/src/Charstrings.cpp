@@ -21,6 +21,9 @@ typedef std::deque<CsToken> Stack;
 typedef std::vector<CsToken> TokenList;
 
 
+CsToken::CsToken(double num)
+    : type(PS_OPERAND), num(num) {}
+
 CsToken::CsToken(int num)
     : type(PS_OPERAND), num(num) {}
 
@@ -63,7 +66,7 @@ std::ostream& operator<<(std::ostream& out, const CsToken& tok) {
 std::ostream& operator<<(std::ostream& out, const Charstring& cs) {
     out << "Charstring [";
 
-    for (int i = 0; i < cs.size(); ++i) {
+    for (size_t i = 0; i < cs.size(); ++i) {
         out << cs[i];
         if (i + 1 < cs.size()) {
             out << ", ";
@@ -218,25 +221,24 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
     }
 
     Path* path = &paths.back();
-    Point z = path->finalPoint();
 
     if (op.str == "rmoveto") {
         if (nargs != 2) {
             throw WrongNumberOfArguments("rmoveto", nargs);
         }
 
-        int x = args[0].num;
-        int y = args[1].num;
+        double x = args[0].num;
+        double y = args[1].num;
 
         if (!path->empty()) {
-            DBG_OUT("Starting new empty path\n"); 
+            DBG_OUT("Starting new empty path\n");
 
             path->close();
             paths.push_back(Path());
             path = &paths.back();
         }
 
-        DBG_OUT("Moving cursor from " << cursor << " to " << cursor + Point(x, y) << "\n"); 
+        DBG_OUT("Moving cursor from " << cursor << " to " << cursor + Point(x, y) << "\n");
         cursor += Point(x, y);
     }
     else if (op.str == "hmoveto") {
@@ -244,17 +246,17 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
             throw WrongNumberOfArguments("hmoveto", nargs);
         }
 
-        int x = args[0].num;
+        double x = args[0].num;
 
         if (!path->empty()) {
-            DBG_OUT("Starting new empty path\n"); 
+            DBG_OUT("Starting new empty path\n");
 
             path->close();
             paths.push_back(Path());
             path = &paths.back();
         }
 
-        DBG_OUT("Moving cursor from " << cursor << " to " << cursor + Point(x, 0) << "\n"); 
+        DBG_OUT("Moving cursor from " << cursor << " to " << cursor + Point(x, 0) << "\n");
         cursor += Point(x, 0);
     }
     else if (op.str == "vmoveto") {
@@ -262,17 +264,17 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
             throw WrongNumberOfArguments("vmoveto", nargs);
         }
 
-        int y = args[0].num;
+        double y = args[0].num;
 
         if (!path->empty()) {
-            DBG_OUT("Starting new empty path\n"); 
+            DBG_OUT("Starting new empty path\n");
 
             path->close();
             paths.push_back(Path());
             path = &paths.back();
         }
 
-        DBG_OUT("Moving cursor from " << cursor << " to " << cursor + Point(0, y) << "\n"); 
+        DBG_OUT("Moving cursor from " << cursor << " to " << cursor + Point(0, y) << "\n");
         cursor += Point(0, y);
     }
     else if (op.str == "rlineto") {
@@ -281,15 +283,15 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
         }
 
         for (int i = 0; i < nargs; i += 2) {
-            int x = args[i].num;
-            int y = args[i + 1].num;
+            double x = args[i].num;
+            double y = args[i + 1].num;
 
             const Point& A = cursor;
             Point B = cursor + Point(x, y);
 
             LineSegment lseg(A, B);
 
-            DBG_OUT("Appending line segment: " << lseg << "\n"); 
+            DBG_OUT("Appending line segment: " << lseg << "\n");
             path->append(lseg);
 
             DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
@@ -301,24 +303,24 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
             const Point& A = cursor;
 
             if (i % 2 == 0) {
-                int x = args[i].num;
+                double x = args[i].num;
                 Point B = cursor + Point(x, 0);
 
                 LineSegment lseg(A, B);
 
-                DBG_OUT("Appending line segment: " << lseg << "\n"); 
+                DBG_OUT("Appending line segment: " << lseg << "\n");
                 path->append(lseg);
 
                 DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
                 cursor = path->finalPoint();
             }
             else {
-                int y = args[i].num;
+                double y = args[i].num;
                 Point B = cursor + Point(0, y);
 
                 LineSegment lseg(A, B);
 
-                DBG_OUT("Appending line segment: " << lseg << "\n"); 
+                DBG_OUT("Appending line segment: " << lseg << "\n");
                 path->append(lseg);
 
                 DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
@@ -331,24 +333,24 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
             const Point& A = cursor;
 
             if (i % 2 == 0) {
-                int y = args[i].num;
+                double y = args[i].num;
                 Point B = cursor + Point(0, y);
 
                 LineSegment lseg(A, B);
 
-                DBG_OUT("Appending line segment: " << lseg << "\n"); 
+                DBG_OUT("Appending line segment: " << lseg << "\n");
                 path->append(lseg);
 
                 DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
                 cursor = path->finalPoint();
             }
             else {
-                int x = args[i].num;
+                double x = args[i].num;
                 Point B = cursor + Point(x, 0);
 
                 LineSegment lseg(A, B);
 
-                DBG_OUT("Appending line segment: " << lseg << "\n"); 
+                DBG_OUT("Appending line segment: " << lseg << "\n");
                 path->append(lseg);
 
                 DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
@@ -362,12 +364,12 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
         }
 
         for (int i = 0; i < nargs; i += 6) {
-            int bx = args[i].num;
-            int by = args[i + 1].num;
-            int cx = args[i + 2].num;
-            int cy = args[i + 3].num;
-            int dx = args[i + 4].num;
-            int dy = args[i + 5].num;
+            double bx = args[i].num;
+            double by = args[i + 1].num;
+            double cx = args[i + 2].num;
+            double cy = args[i + 3].num;
+            double dx = args[i + 4].num;
+            double dy = args[i + 5].num;
 
             const Point& A = cursor;
             Point B = A + Point(bx, by);
@@ -376,7 +378,7 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
             CubicBezier bezier(A, B, C, D);
 
-            DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+            DBG_OUT("Appending cubic bezier: " << bezier << "\n");
             path->append(bezier);
 
             DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
@@ -389,7 +391,7 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
         }
 
         int i = 0;
-        int by = 0;
+        double by = 0;
 
         if (nargs % 4 == 1) {
             by = args[i].num;
@@ -397,10 +399,10 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
         }
 
         for (; i < nargs; i += 4) {
-            int bx = args[i].num;
-            int cx = args[i + 1].num;
-            int cy = args[i + 2].num;
-            int dx = args[i + 3].num;
+            double bx = args[i].num;
+            double cx = args[i + 1].num;
+            double cy = args[i + 2].num;
+            double dx = args[i + 3].num;
 
             const Point& A = cursor;
             Point B = A + Point(bx, by);
@@ -409,7 +411,7 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
             CubicBezier bezier(A, B, C, D);
 
-            DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+            DBG_OUT("Appending cubic bezier: " << bezier << "\n");
             path->append(bezier);
 
             DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
@@ -420,11 +422,11 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
     }
     else if (op.str == "hvcurveto") {
         if (nargs % 8 == 4 || nargs % 8 == 5) {
-            int bx = args[0].num;
-            int cx = args[1].num;
-            int cy = args[2].num;
-            int dx = 0;
-            int dy = args[3].num;
+            double bx = args[0].num;
+            double cx = args[1].num;
+            double cy = args[2].num;
+            double dx = 0;
+            double dy = args[3].num;
 
             if (nargs == 5) {
                 dx = args[4].num;
@@ -437,7 +439,7 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
             CubicBezier bezier(A, B, C, D);
 
-            DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+            DBG_OUT("Appending cubic bezier: " << bezier << "\n");
             path->append(bezier);
 
             DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
@@ -449,10 +451,10 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
             for (int cv = 0; cv < n; ++cv) {
                 int i = 4 + cv * 8;
 
-                int by = args[i].num;
-                int cx = args[i + 1].num;
-                int cy = args[i + 2].num;
-                int dx = args[i + 3].num;
+                double by = args[i].num;
+                double cx = args[i + 1].num;
+                double cy = args[i + 2].num;
+                double dx = args[i + 3].num;
 
                 const Point& A = cursor;
                 Point B = A + Point(0, by);
@@ -461,18 +463,18 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
                 CubicBezier bezier(A, B, C, D);
 
-                DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+                DBG_OUT("Appending cubic bezier: " << bezier << "\n");
                 path->append(bezier);
 
                 DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
                 cursor = path->finalPoint();
 
                 {
-                    int bx = args[i + 4].num;
-                    int cx = args[i + 5].num;
-                    int cy = args[i + 6].num;
-                    int dx = 0;
-                    int dy = args[i + 7].num;
+                    double bx = args[i + 4].num;
+                    double cx = args[i + 5].num;
+                    double cy = args[i + 6].num;
+                    double dx = 0;
+                    double dy = args[i + 7].num;
 
                     if (cv == n - 1 && nargs % 8 == 5) {
                         dx = args[i + 8].num;
@@ -485,7 +487,7 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
                     CubicBezier bezier(A, B, C, D);
 
-                    DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+                    DBG_OUT("Appending cubic bezier: " << bezier << "\n");
                     path->append(bezier);
 
                     DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
@@ -493,16 +495,16 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
                 }
             }
         }
-        else if (nargs >= 8 && nargs % 8 == 0 || nargs % 8 == 1) {
+        else if ((nargs >= 8 && nargs % 8 == 0) || nargs % 8 == 1) {
             int n = nargs / 8;
 
             for (int cv = 0; cv < n; ++cv) {
                 int i = cv * 8;
 
-                int bx = args[i].num;
-                int cx = args[i + 1].num;
-                int cy = args[i + 2].num;
-                int dy = args[i + 3].num;
+                double bx = args[i].num;
+                double cx = args[i + 1].num;
+                double cy = args[i + 2].num;
+                double dy = args[i + 3].num;
 
                 const Point& A = cursor;
                 Point B = A + Point(bx, 0);
@@ -511,18 +513,18 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
                 CubicBezier bezier(A, B, C, D);
 
-                DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+                DBG_OUT("Appending cubic bezier: " << bezier << "\n");
                 path->append(bezier);
 
                 DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
                 cursor = path->finalPoint();
 
                 {
-                    int by = args[i + 4].num;
-                    int cx = args[i + 5].num;
-                    int cy = args[i + 6].num;
-                    int dx = args[i + 7].num;
-                    int dy = 0;
+                    double by = args[i + 4].num;
+                    double cx = args[i + 5].num;
+                    double cy = args[i + 6].num;
+                    double dx = args[i + 7].num;
+                    double dy = 0;
 
                     if (cv == n - 1 && nargs % 8 == 1) {
                         dy = args[i + 8].num;
@@ -535,7 +537,7 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
                     CubicBezier bezier(A, B, C, D);
 
-                    DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+                    DBG_OUT("Appending cubic bezier: " << bezier << "\n");
                     path->append(bezier);
 
                     DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
@@ -596,11 +598,11 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
     }
     else if (op.str == "vhcurveto") {
         if (nargs % 8 == 4 || nargs % 8 == 5) {
-            int by = args[0].num;
-            int cx = args[1].num;
-            int cy = args[2].num;
-            int dx = args[3].num;
-            int dy = 0;
+            double by = args[0].num;
+            double cx = args[1].num;
+            double cy = args[2].num;
+            double dx = args[3].num;
+            double dy = 0;
 
             if (nargs == 5) {
                 dy = args[4].num;
@@ -613,7 +615,7 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
             CubicBezier bezier(A, B, C, D);
 
-            DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+            DBG_OUT("Appending cubic bezier: " << bezier << "\n");
             path->append(bezier);
 
             DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
@@ -625,10 +627,10 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
             for (int cv = 0; cv < n; ++cv) {
                 int i = 4 + cv * 8;
 
-                int bx = args[i].num;
-                int cx = args[i + 1].num;
-                int cy = args[i + 2].num;
-                int dy = args[i + 3].num;
+                double bx = args[i].num;
+                double cx = args[i + 1].num;
+                double cy = args[i + 2].num;
+                double dy = args[i + 3].num;
 
                 const Point& A = cursor;
                 Point B = A + Point(bx, 0);
@@ -637,18 +639,18 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
                 CubicBezier bezier(A, B, C, D);
 
-                DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+                DBG_OUT("Appending cubic bezier: " << bezier << "\n");
                 path->append(bezier);
 
                 DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
                 cursor = path->finalPoint();
 
                 {
-                    int by = args[i + 4].num;
-                    int cx = args[i + 5].num;
-                    int cy = args[i + 6].num;
-                    int dy = 0;
-                    int dx = args[i + 7].num;
+                    double by = args[i + 4].num;
+                    double cx = args[i + 5].num;
+                    double cy = args[i + 6].num;
+                    double dy = 0;
+                    double dx = args[i + 7].num;
 
                     if (cv == n - 1 && nargs % 8 == 5) {
                         dy = args[i + 8].num;
@@ -661,7 +663,7 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
                     CubicBezier bezier(A, B, C, D);
 
-                    DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+                    DBG_OUT("Appending cubic bezier: " << bezier << "\n");
                     path->append(bezier);
 
                     DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
@@ -669,16 +671,16 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
                 }
             }
         }
-        else if (nargs >= 8 && nargs % 8 == 0 || nargs % 8 == 1) {
+        else if ((nargs >= 8 && nargs % 8 == 0) || nargs % 8 == 1) {
             int n = nargs / 8;
 
             for (int cv = 0; cv < n; ++cv) {
                 int i = cv * 8;
 
-                int by = args[i].num;
-                int cx = args[i + 1].num;
-                int cy = args[i + 2].num;
-                int dx = args[i + 3].num;
+                double by = args[i].num;
+                double cx = args[i + 1].num;
+                double cy = args[i + 2].num;
+                double dx = args[i + 3].num;
 
                 const Point& A = cursor;
                 Point B = A + Point(0, by);
@@ -687,18 +689,18 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
                 CubicBezier bezier(A, B, C, D);
 
-                DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+                DBG_OUT("Appending cubic bezier: " << bezier << "\n");
                 path->append(bezier);
 
                 DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
                 cursor = path->finalPoint();
 
                 {
-                    int bx = args[i + 4].num;
-                    int cx = args[i + 5].num;
-                    int cy = args[i + 6].num;
-                    int dx = 0;
-                    int dy = args[i + 7].num;
+                    double bx = args[i + 4].num;
+                    double cx = args[i + 5].num;
+                    double cy = args[i + 6].num;
+                    double dx = 0;
+                    double dy = args[i + 7].num;
 
                     if (cv == n - 1 && nargs % 8 == 1) {
                         dx = args[i + 8].num;
@@ -711,7 +713,7 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
                     CubicBezier bezier(A, B, C, D);
 
-                    DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+                    DBG_OUT("Appending cubic bezier: " << bezier << "\n");
                     path->append(bezier);
 
                     DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
@@ -728,7 +730,7 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
             throw WrongNumberOfArguments("vvcurveto", nargs);
         }
 
-        int bx = 0;
+        double bx = 0;
         if (nargs % 4 == 1) {
             bx = args[0].num;
         }
@@ -742,10 +744,10 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
                 ++i;
             }
 
-            int by = args[i].num;
-            int cx = args[i + 1].num;
-            int cy = args[i + 2].num;
-            int dy = args[i + 3].num;
+            double by = args[i].num;
+            double cx = args[i + 1].num;
+            double cy = args[i + 2].num;
+            double dy = args[i + 3].num;
 
             const Point& A = cursor;
             Point B = A + Point(bx, by);
@@ -754,7 +756,7 @@ static void process(PathList& paths, Point& cursor, Stack& stack, const CsToken 
 
             CubicBezier bezier(A, B, C, D);
 
-            DBG_OUT("Appending cubic bezier: " << bezier << "\n"); 
+            DBG_OUT("Appending cubic bezier: " << bezier << "\n");
             path->append(bezier);
 
             DBG_OUT("Moving cursor from " << cursor << " to " << path->finalPoint() << "\n");
@@ -793,8 +795,8 @@ static void unparseLineSegment(Charstring& cs, const Point& cursor, const LineSe
     Point P = lseg.B() - cursor;
 
     Charstring extra({
-        static_cast<int>(P.x),
-        static_cast<int>(P.y),
+        static_cast<double>(P.x),
+        static_cast<double>(P.y),
         "rlineto"
     });
 
@@ -809,9 +811,9 @@ static void unparseCubicBezier(Charstring& cs, const Point& cursor, const CubicB
     Point D = bezier.D() - bezier.C();
 
     Charstring extra({
-        static_cast<int>(B.x), static_cast<int>(B.y),
-        static_cast<int>(C.x), static_cast<int>(C.y),
-        static_cast<int>(D.x), static_cast<int>(D.y),
+        static_cast<double>(B.x), static_cast<double>(B.y),
+        static_cast<double>(C.x), static_cast<double>(C.y),
+        static_cast<double>(D.x), static_cast<double>(D.y),
         "rrcurveto"
     });
 
@@ -823,7 +825,7 @@ PathList parseCharstring(const Charstring& charstring) {
     Point cursor(0, 0);
     Stack stack;
 
-    for (int i = 0; i < charstring.size(); ++i) {
+    for (size_t i = 0; i < charstring.size(); ++i) {
         const CsToken& tok = charstring[i];
 
         try {
@@ -861,8 +863,8 @@ Charstring generateCharstring(const PathList& paths) {
                 Point p_ = p - cursor;
 
                 Charstring extra({
-                    static_cast<int>(p_.x),
-                    static_cast<int>(p_.y),
+                    static_cast<double>(p_.x),
+                    static_cast<double>(p_.y),
                     "rmoveto"
                 });
 

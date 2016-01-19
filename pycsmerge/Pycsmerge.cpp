@@ -97,7 +97,7 @@ BOOST_PYTHON_MODULE(_pycsmerge) {
     py::def("initialise", &csmerge::initialise);
     py::def("merge_charstrings", &mergeCharstrings_helper);
 
-    py::class_<CsToken>("CsToken", py::init<int>())
+    py::class_<CsToken>("CsToken", py::init<double>())
         .def(py::init<const std::string&>())
         .def("__eq__", &CsToken::operator==)
         .def("__ne__", &CsToken::operator!=);

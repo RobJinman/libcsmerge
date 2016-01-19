@@ -18,6 +18,7 @@ enum CsTokenType_t {
 
 
 struct CsToken {
+    CsToken(double num);
     CsToken(int num);
     CsToken(const char* str);
     CsToken(const std::string& str);
@@ -27,7 +28,7 @@ struct CsToken {
     bool operator!=(const CsToken& rhs) const;
 
     CsTokenType_t type;
-    int num;
+    double num;
     std::string str;
 };
 
