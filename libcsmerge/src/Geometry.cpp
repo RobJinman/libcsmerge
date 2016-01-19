@@ -1,13 +1,10 @@
+#include <cmath>
 #include <functional>
 #include <sstream>
 #include <CGAL/assertions_behaviour.h>
+#include <CGAL/squared_distance_2.h>
 #include "Geometry.hpp"
 #include "Util.hpp"
-
-
-#ifndef LSEGS_PER_BEZIER
-#    define LSEGS_PER_BEZIER 8
-#endif
 
 
 namespace csmerge {
@@ -35,6 +32,8 @@ class CgalException : public GeometryException {
 
 
 double FLOAT_PRECISION = 0.001;
+double MIN_LSEG_LENGTH = 0.001; // Set arbitrarily small, so MAX_LSEGS_PER_BEZIER dominates
+double MAX_LSEGS_PER_BEZIER = 10;
 
 
 NoncontiguousCurvesException::NoncontiguousCurvesException(const Point& pathEnd, const Point& curveStart)
@@ -590,7 +589,31 @@ static cgal_approx::Polygon toPolygon(const Path& path) {
         poly.push_back(cgal_approx::Point(lseg.B().x, lseg.B().y));
     }
 
+    if (!poly.is_simple()) {
+        throw GeometryException("Polygon is not simple");
+    }
+
     return poly;
+}
+
+static double approxCurveLength(const cgal_wrap::BezierCurve& curve) {
+    double dt = 0.1;
+    cgal_wrap::Rational t = 0.0;
+    double sqLen = 0.0;
+
+    cgal_wrap::BezierRatPoint A = curve(t);
+    int n = static_cast<int>(1.0 / dt);
+    for (int i = 1; i <= n; ++i) {
+        t = static_cast<double>(i) * dt;
+
+        cgal_wrap::BezierRatPoint B = curve(t);
+
+        sqLen += CGAL::to_double(CGAL::squared_distance(A, B));
+
+        A = B;
+    }
+
+    return sqrt(sqLen);
 }
 
 static Path toLinearPath(const Path& path) {
@@ -611,7 +634,16 @@ static Path toLinearPath(const Path& path) {
 
             cgal_wrap::BezierCurve cgalBezier(points.begin(), points.end());
 
-            int n = LSEGS_PER_BEZIER;
+            int n = static_cast<double>(approxCurveLength(cgalBezier) / MIN_LSEG_LENGTH + 0.5);
+
+            if (n > MAX_LSEGS_PER_BEZIER) {
+                n = MAX_LSEGS_PER_BEZIER;
+            }
+
+            if (n < 1) {
+                n = 1;
+            }
+
             double dt = 1.0 / static_cast<double>(n);
             cgal_wrap::Rational t = 0.0;
 
@@ -671,7 +703,11 @@ cgal_approx::PolyList toPolyList(const PathList& paths) {
             std::list<pTree_t> children;
 
             bool contains(const cgal_approx::Polygon& poly) const {
-                return outer.is_empty() || outer.has_on_positive_side(poly.vertex(0));
+                if (!poly.is_empty()) {
+                    return outer.is_empty() || outer.has_on_positive_side(poly.vertex(0));
+                }
+
+                return false;
             }
 
             bool contains(const Tree& tree) const {
@@ -679,7 +715,7 @@ cgal_approx::PolyList toPolyList(const PathList& paths) {
             }
 
             bool isInside(const Tree& tree) const {
-                return (!outer.is_empty()) || tree.outer.has_on_positive_side(outer.vertex(0));
+                return tree.contains(*this);
             }
 
             void insert(pTree_t tree) {
@@ -814,7 +850,7 @@ cgal_approx::PolyList toPolyList(const PathList& paths) {
     }
 
 #ifdef DEBUG
-//    polyTree.dbg_print(std::cout);
+    polyTree.dbg_print(std::cout);
 #endif
 
     holes.clear();

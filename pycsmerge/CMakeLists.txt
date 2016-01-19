@@ -17,7 +17,11 @@ endif()
 find_package(CGAL COMPONENTS Core)
 include(${CGAL_USE_FILE})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -Wall")
+
+if(CMAKE_BUILD_TYPE EQUAL Debug)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+endif()
 
 if(APPROX_BEZIERS)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPPROX_BEZIERS")

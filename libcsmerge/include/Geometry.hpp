@@ -210,6 +210,8 @@ std::ostream& operator<<(std::ostream& out, const Path& path);
 
 
 extern double FLOAT_PRECISION;
+extern double MIN_LSEG_LENGTH;        // These are only used in the APPROX_BEZIERS build
+extern double MAX_LSEGS_PER_BEZIER;   //
 
 void initialise();
 PathList computeUnion(const PathList& paths1, const PathList& paths2);

@@ -85,33 +85,63 @@ static cgal_wrap::BezierPolygonSet toPolySet(const cgal_wrap::PolyList& polyList
 Demo::Demo() {
     initialise();
 //    FLOAT_PRECISION = 20.0;
+    MAX_LSEGS_PER_BEZIER = 8;
+    MIN_LSEG_LENGTH = 20;
 
     m_scene = new QGraphicsScene;
     m_view = new QGraphicsView(m_scene);
 
-    m_view->scale(0.5, -0.5);
+    m_view->scale(2.0, -2.0);
 
     setCentralWidget(m_view);
 
     try {
         Charstring glyph({
-            166, 243, "rmoveto", 117, 101, 64, 145, 26, 27, -1, -2, 15, "vhcurveto", -25, "vlineto", -216, -122, -64, -76, -63, -53, 41, 86, "vhcurveto", -77, -3, "rmoveto", -107, 71, -56, 62, -6, "vhcurveto", -2, "vlineto", -44, -14, -51, -7, -48, -24, "rrcurveto", -40, -20, -35, -34, -54, "vvcurveto", -108, 116, -45, 157, "vhcurveto", 189, 110, 72, 124, "hvcurveto", 60, -23, 70, 102, "vvcurveto", 291, "vlineto", 4, -30, -53, 4, -49, "hhcurveto", -199, -133, -87, -163, "hvcurveto", 189, -411, "rmoveto", -106, -91, 21, 69, 72, 100, 6, 99, 30, "hvcurveto", 81, 24, 83, 37, 36, 92, "rrcurveto", 2, "hlineto", -4, -103, 22, -37, -76, "vvcurveto", -89, -85, -46, -137, "vhcurveto", "endchar"
+            215, 450, "rmoveto", 3, -27, 0, -81, -96, "vvcurveto", -95, -1, -98, -2, -25, "vhcurveto", -90, -3, "rlineto", -25, 265, 25, "vlineto", -92, 3, "rlineto", -1, 24, -2, 75, 110, "vvcurveto", 0, "vlineto", 94, 1, 98, 1, 21, "vhcurveto", 91, "hlineto", 16, 19, -29, -86, 32, "hvcurveto", 12, "hlineto", -7, 156, "rlineto", -5, "hlineto", -28, -11, "rlineto", -342, "hlineto", -28, 11, "rlineto", -5, "hlineto", -7, -156, "rlineto", 12, "hlineto", 86, 32, 19, 29, 16, "hhcurveto", 132, 143, "rmoveto", -39, 42, -47, 47, -36, 27, -17, -3, "rcurveline", 35, -46, 48, -76, 26, -48, "rrcurveto", -3, 10, 12, -1, 8, "hhcurveto", 8, 12, 1, 3, 10, "hvcurveto", 26, 48, 48, 76, 35, 46, -17, 3, "rcurveline", -36, -27, -47, -47, -39, -42, "rrcurveto", "endchar"
         });
-/*
+
         PathList paths = parseCharstring(glyph);
+        std::cout << paths.size() << " paths\n";
+
         PathList linear = approx::toLinearPaths(paths);
+        std::cout << linear.size() << " linear paths\n";
 
-        printPathList(linear);
+        PathList linear1;
+        linear1.push_back(linear[0]);
 
-        approx::cgal_approx::PolyList polyList1 = approx::toPolyList(linear);
-*/
+//        PathList linear2;
+//        linear2.push_back(linear[1]);
 
+        printPathList(linear1);
+
+        drawPaths(linear1);
+
+        approx::cgal_approx::PolyList polyList = approx::toPolyList(linear1);
+/*
+        for (const approx::cgal_approx::PolygonWithHoles& poly : polyList) {
+            const approx::cgal_approx::Polygon& outer = poly.outer_boundary();
+
+            std::cout << "OUTER:\n";
+            for (auto i = outer.vertices_begin(); i != outer.vertices_end(); ++i) {
+                std::cout << *i << "\n";
+            }
+
+            for (auto j = poly.holes_begin(); j != poly.holes_end(); ++j) {
+                const approx::cgal_approx::Polygon& hole = *j;
+
+                std::cout << "HOLE:\n";
+                for (auto i = hole.vertices_begin(); i != hole.vertices_end(); ++i) {
+                    std::cout << *i << "\n";
+                }
+            }
+        }*/
+/*
         Charstring watermark({
-            0, -237, "rmoveto", 56.725, 0, "rlineto", 263.775, 404.50541269094174, "rlineto", 263.775, -404.50541269094174, "rlineto", 56.72500000000002, 0, "rlineto", -292.1375, 448.0, "rlineto", 292.1375, 448.0, "rlineto", -56.72500000000002, 0, "rlineto", -263.775, -404.50541269094174, "rlineto", -263.775, 404.50541269094174, "rlineto", -56.725, 0, "rlineto", 292.1375, -448.0, "rlineto", -292.1375, -448.0, "rlineto"
+            0, -220, "rmoveto", 26.50830707571863, 0, "rlineto", 229.49169292428138, 431.1019673401231, "rlineto", 229.49169292428138, -431.1019673401231, "rlineto", 26.50830707571862, 0, "rlineto", -242.74584646214066, 456.0, "rlineto", 242.74584646214066, 456.0, "rlineto", -26.50830707571862, 0, "rlineto", -229.49169292428138, -431.10196734012305, "rlineto", -229.49169292428138, 431.10196734012305, "rlineto", -26.50830707571863, 0, "rlineto", 242.7458464621407, -456.0, "rlineto", "endchar"
         });
 
         Charstring merged = mergeCharstrings(glyph, watermark);
-        drawPaths(parseCharstring(merged));
+        drawPaths(parseCharstring(merged));*/
     }
     catch (CsMergeException& ex) {
         std::cerr << ex.what() << "\n";
@@ -125,28 +155,39 @@ void Demo::drawPaths(const PathList& paths) {
 }
 
 void Demo::drawPath(const Path& path) {
-    QPainterPath pp;
-
+    int i = 0;
     for (const std::unique_ptr<Curve>& pCurve : path) {
         const Curve& curve = *pCurve;
 
+        QPen colour;
+        if (i == 0) {
+            colour = QPen(Qt::red);
+        }
+        else {
+            colour = i % 2 == 0 ? QPen(Qt::black) : QPen(Qt::blue);
+        }
+
         if (curve.type() == LineSegment::type) {
             const LineSegment& lseg = dynamic_cast<const LineSegment&>(curve);
-//            std::cout << lseg << "\n";
 
+            QPainterPath pp;
             pp.moveTo(lseg.A().x, lseg.A().y);
             pp.lineTo(lseg.B().x, lseg.B().y);
+
+            m_scene->addPath(pp, colour);
         }
         else if (curve.type() == CubicBezier::type) {
             const CubicBezier& bezier = dynamic_cast<const CubicBezier&>(curve);
-//            std::cout << bezier << "\n";
 
+            QPainterPath pp;
             pp.moveTo(bezier.A().x, bezier.A().y);
             pp.cubicTo(bezier.B().x, bezier.B().y, bezier.C().x, bezier.C().y, bezier.D().x, bezier.D().y);
-        }
-    }
 
-    m_scene->addPath(pp, QPen(Qt::blue));
+            m_scene->addPath(pp, colour);
+        }
+
+        ++i;
+    }
 }
 
 Demo::~Demo() {}

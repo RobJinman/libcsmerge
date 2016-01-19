@@ -87,15 +87,43 @@ static py::list mergeCharstrings_helper(py::list& cs1Tokens, py::list& cs2Tokens
     return result;
 }
 
-
 static void translateException(const CsMergeException& ex) {
     PyErr_SetString(PyExc_RuntimeWarning, ex.what());
 }
 
+static void setFloatPrecision(double fp) {
+    geometry::FLOAT_PRECISION = fp;
+}
+
+static double getFloatPrecision() {
+    return geometry::FLOAT_PRECISION;
+}
+
+static void setMinLsegLength(double len) {
+    geometry::MIN_LSEG_LENGTH = len;
+}
+
+static double getMinLsegLength() {
+    return geometry::MIN_LSEG_LENGTH;
+}
+
+static void setMaxLsegsPerBezier(int n) {
+    geometry::MAX_LSEGS_PER_BEZIER = n;
+}
+
+static int getMaxLsegsPerBezier() {
+    return geometry::MAX_LSEGS_PER_BEZIER;
+}
 
 BOOST_PYTHON_MODULE(_pycsmerge) {
     py::def("initialise", &csmerge::initialise);
     py::def("merge_charstrings", &mergeCharstrings_helper);
+    py::def("set_float_precision", &setFloatPrecision);
+    py::def("get_float_precision", &getFloatPrecision);
+    py::def("set_min_lseg_length", &setMinLsegLength);
+    py::def("get_min_lseg_length", &getMinLsegLength);
+    py::def("set_max_lsegs_per_bezier", &setMaxLsegsPerBezier);
+    py::def("get_max_lsegs_per_bezier", &getMaxLsegsPerBezier);
 
     py::class_<CsToken>("CsToken", py::init<double>())
         .def(py::init<const std::string&>())
