@@ -1,0 +1,4 @@
+build/
+dist/
+Pycsmerge.egg-info/
+__pycache__

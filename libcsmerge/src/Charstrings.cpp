@@ -46,6 +46,8 @@ bool CsToken::operator==(const CsToken& rhs) const {
         case PS_OPERAND: return num == rhs.num;
         default: assert(false);
     }
+
+    return false;
 }
 
 bool CsToken::operator!=(const CsToken& rhs) const {
