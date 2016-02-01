@@ -44,6 +44,7 @@ target_link_libraries(pycsmerge mpfr gmp ${Boost_LIBRARIES} ${CGAL_LIBRARIES} ${
 
 if(APPLE)
   set_target_properties(pycsmerge PROPERTIES LINK_FLAGS "${PYTHON_LD_FLAGS}")
+  set(MACOSX_RPATH "ON")
 else()
   target_link_libraries(pycsmerge "${PYTHON_LIBRARY}")
 endif()

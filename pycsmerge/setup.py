@@ -35,7 +35,6 @@ module1 = Extension('_pycsmerge',
                         '-frounding-math',
                         '-Wall',
                         '-fPIC',
-                        '-shared',
                         '-Wl,-soname,_pycsmerge.so'
                     ])
 

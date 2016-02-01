@@ -52,6 +52,79 @@ TEST_F(GeometryTest, lineSegLineSegEquality) {
     ASSERT_TRUE(L2 == L3);
 }
 
+#ifdef APPROX_BEZIERS
+TEST_F(GeometryTest, toLinearPaths) {
+    Path path;
+    path.append(LineSegment(Point(-10, -10), Point(10, -10)));
+    path.append(LineSegment(Point(10, -10), Point(10, 10)));
+    path.append(LineSegment(Point(10, 10), Point(-10, 10)));
+    path.append(LineSegment(Point(-10, 10), Point(-10, -10)));
+
+    PathList paths1;
+    paths1.push_back(path);
+
+    PathList paths2 = approx::toLinearPaths(paths1);
+
+    ASSERT_EQ(1, paths2.size());
+    ASSERT_EQ(4, paths2[0].size());
+    ASSERT_EQ(paths1[0][0], paths2[0][0]);
+    ASSERT_EQ(paths1[0][1], paths2[0][1]);
+    ASSERT_EQ(paths1[0][2], paths2[0][2]);
+    ASSERT_EQ(paths1[0][3], paths2[0][3]);
+}
+
+TEST_F(GeometryTest, pathsToPoly) {
+    Path path;
+    path.append(LineSegment(Point(-10, -10), Point(10, -10)));
+    path.append(LineSegment(Point(10, -10), Point(10, 10)));
+    path.append(LineSegment(Point(10, 10), Point(-10, 10)));
+    path.append(LineSegment(Point(-10, 10), Point(-10, -10)));
+
+    PathList paths1;
+    paths1.push_back(path);
+
+    approx::cgal_approx::PolyList polyList = approx::toPolyList(paths1);
+    ASSERT_EQ(1, polyList.size());
+
+    const approx::cgal_approx::PolygonWithHoles& poly = polyList[0];
+
+    ASSERT_FALSE(poly.is_unbounded());
+    ASSERT_EQ(poly.holes_begin(), poly.holes_end());
+
+    approx::cgal_approx::Polygon outer = poly.outer_boundary();
+
+    ASSERT_EQ(4, outer.size());
+    ASSERT_EQ(paths1[0][0].initialPoint(), Point(CGAL::to_double(outer[0].x()), CGAL::to_double(outer[0].y())));
+    ASSERT_EQ(paths1[0][1].initialPoint(), Point(CGAL::to_double(outer[1].x()), CGAL::to_double(outer[1].y())));
+    ASSERT_EQ(paths1[0][2].initialPoint(), Point(CGAL::to_double(outer[2].x()), CGAL::to_double(outer[2].y())));
+    ASSERT_EQ(paths1[0][3].initialPoint(), Point(CGAL::to_double(outer[3].x()), CGAL::to_double(outer[3].y())));
+}
+
+TEST_F(GeometryTest, pathsToPolyAndBack) {
+    Path path;
+    path.append(LineSegment(Point(-10, -10), Point(10, -10)));
+    path.append(LineSegment(Point(10, -10), Point(10, 10)));
+    path.append(LineSegment(Point(10, 10), Point(-10, 10)));
+    path.append(LineSegment(Point(-10, 10), Point(-10, -10)));
+
+    PathList paths1;
+    paths1.push_back(path);
+
+    approx::cgal_approx::PolyList polyList = approx::toPolyList(paths1);
+    ASSERT_EQ(1, polyList.size());
+    ASSERT_EQ(4, polyList[0].outer_boundary().size());
+
+    PathList paths2 = approx::toPathList(polyList);
+    ASSERT_EQ(1, paths2.size());
+    ASSERT_EQ(4, paths2[0].size());
+
+    for (int i = 0; i < paths1[0].size(); ++i) {
+        ASSERT_EQ(paths1[0][i], paths2[0][i]);
+    }
+}
+#endif
+
+#ifndef APPROX_BEZIERS
 TEST_F(GeometryTest, pathsToPoly) {
     Path path;
     path.append(LineSegment(Point(-10, -10), Point(10, -10)));
@@ -327,6 +400,7 @@ TEST_F(GeometryTest, pathsToPolyWithBezier) {
     }
     //------------------
 }
+#endif
 
 TEST_F(GeometryTest, pathsToPolyAndBackWithBezier) {
     Path path;
@@ -384,6 +458,7 @@ TEST_F(GeometryTest, pathsToPolyAndBackWithHole) {
     }
 }
 
+#ifndef APPROX_BEZIERS
 TEST_F(GeometryTest, aGlyphToPoly) {
     Path path1;
     path1.append(LineSegment(Point(344, 0), Point(409, 0)));
@@ -484,6 +559,7 @@ TEST_F(GeometryTest, bGlyphToPoly) {
         }
     }
 }
+#endif
 
 TEST_F(GeometryTest, simplePathsUnion) {
     Path path1;
@@ -506,17 +582,21 @@ TEST_F(GeometryTest, simplePathsUnion) {
 
     PathList paths3 = computeUnion(paths1, paths2);
 
+    for (auto i : paths3) {
+        std::cout << i << "\n";
+    }
+
     ASSERT_EQ(1, paths3.size());
     ASSERT_EQ(8, paths3[0].size());
 
-    ASSERT_EQ(LineSegment(Point(15, 15), Point(-5, 15)), paths3[0][0]);
-    ASSERT_EQ(LineSegment(Point(-5, 15), Point(-5, 10)), paths3[0][1]);
-    ASSERT_EQ(LineSegment(Point(-5, 10), Point(-10, 10)), paths3[0][2]);
-    ASSERT_EQ(LineSegment(Point(-10, 10), Point(-10, -10)), paths3[0][3]);
-    ASSERT_EQ(LineSegment(Point(-10, -10), Point(10, -10)), paths3[0][4]);
-    ASSERT_EQ(LineSegment(Point(10, -10), Point(10, -5)), paths3[0][5]);
-    ASSERT_EQ(LineSegment(Point(10, -5), Point(15, -5)), paths3[0][6]);
-    ASSERT_EQ(LineSegment(Point(15, -5), Point(15, 15)), paths3[0][7]);
+    ASSERT_EQ(LineSegment(Point(-5, 15), Point(-5, 10)), paths3[0][0]);
+    ASSERT_EQ(LineSegment(Point(-5, 10), Point(-10, 10)), paths3[0][1]);
+    ASSERT_EQ(LineSegment(Point(-10, 10), Point(-10, -10)), paths3[0][2]);
+    ASSERT_EQ(LineSegment(Point(-10, -10), Point(10, -10)), paths3[0][3]);
+    ASSERT_EQ(LineSegment(Point(10, -10), Point(10, -5)), paths3[0][4]);
+    ASSERT_EQ(LineSegment(Point(10, -5), Point(15, -5)), paths3[0][5]);
+    ASSERT_EQ(LineSegment(Point(15, -5), Point(15, 15)), paths3[0][6]);
+    ASSERT_EQ(LineSegment(Point(15, 15), Point(-5, 15)), paths3[0][7]);
 }
 
 TEST_F(GeometryTest, pathsWithHolesUnion) {
@@ -558,18 +638,18 @@ TEST_F(GeometryTest, pathsWithHolesUnion) {
     ASSERT_EQ(8, paths3[0].size());
     ASSERT_EQ(4, paths3[1].size());
 
-    ASSERT_EQ(LineSegment(Point(15, 15), Point(-5, 15)), paths3[0][0]);
-    ASSERT_EQ(LineSegment(Point(-5, 15), Point(-5, 10)), paths3[0][1]);
-    ASSERT_EQ(LineSegment(Point(-5, 10), Point(-10, 10)), paths3[0][2]);
-    ASSERT_EQ(LineSegment(Point(-10, 10), Point(-10, -10)), paths3[0][3]);
-    ASSERT_EQ(LineSegment(Point(-10, -10), Point(10, -10)), paths3[0][4]);
-    ASSERT_EQ(LineSegment(Point(10, -10), Point(10, -5)), paths3[0][5]);
-    ASSERT_EQ(LineSegment(Point(10, -5), Point(15, -5)), paths3[0][6]);
-    ASSERT_EQ(LineSegment(Point(15, -5), Point(15, 15)), paths3[0][7]);
-    ASSERT_EQ(LineSegment(Point(0, 5), Point(5, 5)), paths3[1][0]);
-    ASSERT_EQ(LineSegment(Point(5, 5), Point(5, 0)), paths3[1][1]);
-    ASSERT_EQ(LineSegment(Point(5, 0), Point(0, 0)), paths3[1][2]);
-    ASSERT_EQ(LineSegment(Point(0, 0), Point(0, 5)), paths3[1][3]);
+    ASSERT_EQ(LineSegment(Point(-5, 15), Point(-5, 10)), paths3[0][0]);
+    ASSERT_EQ(LineSegment(Point(-5, 10), Point(-10, 10)), paths3[0][1]);
+    ASSERT_EQ(LineSegment(Point(-10, 10), Point(-10, -10)), paths3[0][2]);
+    ASSERT_EQ(LineSegment(Point(-10, -10), Point(10, -10)), paths3[0][3]);
+    ASSERT_EQ(LineSegment(Point(10, -10), Point(10, -5)), paths3[0][4]);
+    ASSERT_EQ(LineSegment(Point(10, -5), Point(15, -5)), paths3[0][5]);
+    ASSERT_EQ(LineSegment(Point(15, -5), Point(15, 15)), paths3[0][6]);
+    ASSERT_EQ(LineSegment(Point(15, 15), Point(-5, 15)), paths3[0][7]);
+    ASSERT_EQ(LineSegment(Point(5, 5), Point(5, 0)), paths3[1][0]);
+    ASSERT_EQ(LineSegment(Point(5, 0), Point(0, 0)), paths3[1][1]);
+    ASSERT_EQ(LineSegment(Point(0, 0), Point(0, 5)), paths3[1][2]);
+    ASSERT_EQ(LineSegment(Point(0, 5), Point(5, 5)), paths3[1][3]);
 }
 
 TEST_F(GeometryTest, bezierPathsWithHolesUnion) {

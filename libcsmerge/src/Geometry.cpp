@@ -586,7 +586,7 @@ static cgal_approx::Polygon toPolygon(const Path& path) {
         assert(curve.type() == LineSegment::type);
         const LineSegment& lseg = dynamic_cast<const LineSegment&>(curve);
 
-        poly.push_back(cgal_approx::Point(lseg.B().x, lseg.B().y));
+        poly.push_back(cgal_approx::Point(lseg.A().x, lseg.A().y));
     }
 
     if (!poly.is_simple()) {
@@ -672,6 +672,7 @@ static Path toPath(const cgal_approx::Polygon& poly) {
 
     auto i = poly.vertices_begin();
     Point A(CGAL::to_double(i->x()), CGAL::to_double(i->y()));
+    ++i;
 
     for (; i != poly.vertices_end(); ++i) {
         Point B(CGAL::to_double(i->x()), CGAL::to_double(i->y()));
@@ -730,7 +731,7 @@ cgal_approx::PolyList toPolyList(const PathList& paths) {
                 }
 
                 // By this point we know that this node's polygon contains the tree's polygon
-                // but none of our childrens' polygons does. It should thus be added as a child
+                // but none of our children's polygons does. It should thus be added as a child
                 // to this tree, but we must work out which children it should inherit.
 
                 auto i = children.begin();
