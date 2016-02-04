@@ -11,7 +11,17 @@ Through the Python API only a single function, merge_charstrings, is exposed. Th
 Build libcsmerge
 ----------------
 
+The following commands will build libcsmerge and install the python extension pycsmerge.
+
         mkdir build
         cd build
-        cmake -G "Unix Makefiles" ..
+        cmake -DCMAKE_BUILD_TYPE=Release -DAPPROX_BEZIERS=1 -G "Unix Makefiles" ..
         make
+        cd ../pycsmerge
+        python setup.py install
+
+To verify a working installation
+
+        python
+        >>> import pycsmerge
+        >>> dir(pycsmerge)
