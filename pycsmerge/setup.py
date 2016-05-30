@@ -1,6 +1,5 @@
-import os
+import os, sys
 from setuptools import setup, Extension
-
 
 module1 = Extension('_pycsmerge',
                     ['Pycsmerge.cpp'],
@@ -20,7 +19,7 @@ module1 = Extension('_pycsmerge',
                     ],
                     libraries=[
                         'csmerge',
-                        'boost_python-py34',
+                        'boost_python-py3{}'.format(sys.version_info.minor),
                         'mpfr',
                         'gmp',
                         'CGAL',

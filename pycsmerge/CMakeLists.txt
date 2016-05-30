@@ -7,9 +7,9 @@ if(APPLE)
 
   set(CMAKE_CXX_FLAGS "${PYTHON_INCLUDES}")
 else()
-  find_package(Boost COMPONENTS python-py34 REQUIRED)
-  set(Python_ADDITIONAL_VERSIONS 3.4)
-  find_package(PythonLibs 3.4 REQUIRED)
+  find_package(Boost COMPONENTS python-py3 REQUIRED)
+  set(Python_ADDITIONAL_VERSIONS 3)
+  find_package(PythonLibs 3 REQUIRED)
 
   include_directories(${PYTHON_INCLUDE_DIR})
 endif()
