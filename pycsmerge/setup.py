@@ -1,5 +1,7 @@
 import os, sys
-from setuptools import setup, Extension
+from distutils.core import setup, Extension
+
+print(sys.version_info);
 
 module1 = Extension('_pycsmerge',
                     ['Pycsmerge.cpp'],
@@ -11,6 +13,7 @@ module1 = Extension('_pycsmerge',
                     ],
                     include_dirs=[
                         '/usr/local/include',
+                        '/usr/include/python3.{}m'.format(sys.version_info.minor),
                         '../libcsmerge/include'
                     ],
                     library_dirs=[
@@ -19,7 +22,7 @@ module1 = Extension('_pycsmerge',
                     ],
                     libraries=[
                         'csmerge',
-                        'boost_python-py3{}'.format(sys.version_info.minor),
+                        'boost_python3',
                         'mpfr',
                         'gmp',
                         'CGAL',
