@@ -25,7 +25,7 @@ set(CGAL_DONT_OVERRIDE_CMAKE_FLAGS, TRUE)
 file(GLOB_RECURSE SRCS src/*.cpp)
 add_executable(unitTests ${SRCS})
 
-target_link_libraries(unitTests csmerge gtest gtest_main)
+target_link_libraries(unitTests csmerge gtest gtest_main -pthread -lm)
 
 if(CGAL_AUTO_LINK_ENABLED)
   target_link_libraries(unitTests ${CGAL_3RD_PARTY_LIBRARIES} )
